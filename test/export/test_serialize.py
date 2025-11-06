@@ -38,6 +38,7 @@ from torch._export.serde.serialize import (
     _to_json_bytes,
     canonicalize,
     deserialize,
+    deserialize_torch_artifact,
     ExportedProgramDeserializer,
     ExportedProgramSerializer,
     GraphModuleSerializer,
@@ -1903,6 +1904,16 @@ class TestSaveLoad(TestCase):
         loaded_ep = load(buffer)
 
         self.assertTrue(torch.allclose(ep.module()(*inp), loaded_ep.module()(*inp)))
+
+    def test_deserialize_torch_artifact_dict(self):
+        data = {"key": torch.tensor([1, 2, 3])}
+        buf = io.BytesIO()
+        torch.save(data, buf)
+        serialized = buf.getvalue()
+        result = deserialize_torch_artifact(serialized)
+
+        self.assertIsInstance(result, dict)
+        self.assertTrue(torch.equal(result["key"], torch.tensor([1, 2, 3])))
 
     @unittest.skipIf(IS_WINDOWS, "Cannot modify file in windows")
     def test_save_file(self):
